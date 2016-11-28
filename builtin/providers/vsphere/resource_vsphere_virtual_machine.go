@@ -58,6 +58,7 @@ type hardDisk struct {
 	vmdkPath   string
 	controller string
 	bootable   bool
+	unit       int32
 }
 
 //Additional options Vsphere can use clones of windows machines
@@ -445,6 +446,11 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 								return
 							},
 						},
+						"unit": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+							Default:  -1,
+						},
 					},
 				},
 			},
@@ -595,8 +601,10 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 					initType = "thin"
 				}
 
+				unit := int32(disk["unit"].(int))
+
 				log.Printf("[INFO] Attaching disk: %v", diskPath)
-				err = addHardDisk(vm, size, iops, initType, datastore, diskPath, controller_type)
+				err = addHardDisk(vm, size, iops, initType, datastore, diskPath, controller_type, unit)
 				if err != nil {
 					log.Printf("[ERROR] Add Hard Disk Failed: %v", err)
 					return err
@@ -847,6 +855,10 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 
 				if v, ok := disk["controller_type"].(string); ok && v != "" {
 					newDisk.controller = v
+				}
+
+				if v, ok := disk["unit"].(int); ok && v != 0 {
+					newDisk.unit = int32(v)
 				}
 
 				if vVmdk, ok := disk["vmdk"].(string); ok && vVmdk != "" {
@@ -1225,7 +1237,7 @@ func resourceVSphereVirtualMachineDelete(d *schema.ResourceData, meta interface{
 }
 
 // addHardDisk adds a new Hard Disk to the VirtualMachine.
-func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string, datastore *object.Datastore, diskPath string, controller_type string) error {
+func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string, datastore *object.Datastore, diskPath string, controller_type string, unitNumber int32) error {
 	devices, err := vm.Device(context.TODO())
 	if err != nil {
 		return err
@@ -1327,11 +1339,15 @@ func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string, d
 	disk := devices.CreateDisk(controller, datastore.Reference(), diskPath)
 
 	if strings.Contains(controller_type, "scsi") {
-		unitNumber, err := getNextUnitNumber(devices, controller)
-		if err != nil {
-			return err
+		if unitNumber < 0 {
+			nextUnitNumber, err := getNextUnitNumber(devices, controller)
+			if err != nil {
+				return err
+			}
+			*disk.UnitNumber = nextUnitNumber
+		} else {
+			*disk.UnitNumber = unitNumber
 		}
-		*disk.UnitNumber = unitNumber
 	}
 
 	existing := devices.SelectByBackingInfo(disk.Backing)
@@ -2015,9 +2031,9 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 		default:
 			return fmt.Errorf("[ERROR] setupVirtualMachine - Neither vmdk path nor vmdk name was given: %#v", vm.hardDisks[i])
 		}
-		err = addHardDisk(newVM, vm.hardDisks[i].size, vm.hardDisks[i].iops, vm.hardDisks[i].initType, datastore, diskPath, vm.hardDisks[i].controller)
+		err = addHardDisk(newVM, vm.hardDisks[i].size, vm.hardDisks[i].iops, vm.hardDisks[i].initType, datastore, diskPath, vm.hardDisks[i].controller, vm.hardDisks[i].unit)
 		if err != nil {
-			err2 := addHardDisk(newVM, vm.hardDisks[i].size, vm.hardDisks[i].iops, vm.hardDisks[i].initType, datastore, diskPath, vm.hardDisks[i].controller)
+			err2 := addHardDisk(newVM, vm.hardDisks[i].size, vm.hardDisks[i].iops, vm.hardDisks[i].initType, datastore, diskPath, vm.hardDisks[i].controller, vm.hardDisks[i].unit)
 			if err2 != nil {
 				return err2
 			}
