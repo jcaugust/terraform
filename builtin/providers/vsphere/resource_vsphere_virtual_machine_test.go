@@ -1494,7 +1494,7 @@ func createAndAttachDisk(t *testing.T, vmName string, size int, datastore string
 		t.Fail()
 		return
 	}
-	err = addHardDisk(vm, int64(size), int64(0), diskType, ds, diskPath, adapterType)
+	err = addHardDisk(vm, int64(size), int64(0), diskType, ds, diskPath, adapterType, -1)
 	if err != nil {
 		log.Printf("[ERROR] addHardDisk: %v", err)
 		t.Fail()
