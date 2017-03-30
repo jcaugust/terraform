@@ -230,13 +230,34 @@ if ($http_proxy -ne '') {
 
   $proxy = New-Object System.Net.WebProxy($http_proxy, $true, ,$no_proxy.Split(','))
   $downloader.proxy = $proxy
+  $match = [regex]::match($http_proxy,'^(?i:http|https):\/\/(.+):(.+)@')
+  if ($match.success -eq $true) {
+    $downloader.proxy.credentials = New-Object System.Net.NetworkCredential($match.groups[1].value, $match.groups[2].value)
+  }
 }
 
 Write-Host 'Downloading Chef Client...'
-$downloader.DownloadFile($url, $dest)
+try {
+  $downloader.DownloadFile($url, $dest)
+}
+catch {
+  Write-Host $_
+  exit 1
+}
 
 Write-Host 'Installing Chef Client...'
-Start-Process -FilePath msiexec -ArgumentList /qn, /i, $dest -Wait
+try {
+  $p = Start-Process -FilePath $env:SystemRoot\System32\msiexec.exe -ArgumentList "/qn /i $dest" -Wait -PassThru
+  $p.WaitForExit()
+  if ($p.ExitCode -ne 0) {
+    Write-Host $_
+    exit 1
+  }
+}
+catch {
+  Write-Host $_
+  exit 1
+}
 `
 
 const proxyWindowsInstallScript = `
@@ -267,13 +288,34 @@ if ($http_proxy -ne '') {
 
   $proxy = New-Object System.Net.WebProxy($http_proxy, $true, ,$no_proxy.Split(','))
   $downloader.proxy = $proxy
+  $match = [regex]::match($http_proxy,'^(?i:http|https):\/\/(.+):(.+)@')
+  if ($match.success -eq $true) {
+    $downloader.proxy.credentials = New-Object System.Net.NetworkCredential($match.groups[1].value, $match.groups[2].value)
+  }
 }
 
 Write-Host 'Downloading Chef Client...'
-$downloader.DownloadFile($url, $dest)
+try {
+  $downloader.DownloadFile($url, $dest)
+}
+catch {
+  Write-Host $_
+  exit 1
+}
 
 Write-Host 'Installing Chef Client...'
-Start-Process -FilePath msiexec -ArgumentList /qn, /i, $dest -Wait
+try {
+  $p = Start-Process -FilePath $env:SystemRoot\System32\msiexec.exe -ArgumentList "/qn /i $dest" -Wait -PassThru
+  $p.WaitForExit()
+  if ($p.ExitCode -ne 0) {
+    Write-Host $_
+    exit 1
+  }
+}
+catch {
+  Write-Host $_
+  exit 1
+}
 `
 
 const versionWindowsInstallScript = `
@@ -304,13 +346,34 @@ if ($http_proxy -ne '') {
 
   $proxy = New-Object System.Net.WebProxy($http_proxy, $true, ,$no_proxy.Split(','))
   $downloader.proxy = $proxy
+  $match = [regex]::match($http_proxy,'^(?i:http|https):\/\/(.+):(.+)@')
+  if ($match.success -eq $true) {
+    $downloader.proxy.credentials = New-Object System.Net.NetworkCredential($match.groups[1].value, $match.groups[2].value)
+  }
 }
 
 Write-Host 'Downloading Chef Client...'
-$downloader.DownloadFile($url, $dest)
+try {
+  $downloader.DownloadFile($url, $dest)
+}
+catch {
+  Write-Host $_
+  exit 1
+}
 
 Write-Host 'Installing Chef Client...'
-Start-Process -FilePath msiexec -ArgumentList /qn, /i, $dest -Wait
+try {
+  $p = Start-Process -FilePath $env:SystemRoot\System32\msiexec.exe -ArgumentList "/qn /i $dest" -Wait -PassThru
+  $p.WaitForExit()
+  if ($p.ExitCode -ne 0) {
+    Write-Host $_
+    exit 1
+  }
+}
+catch {
+  Write-Host $_
+  exit 1
+}
 `
 
 const defaultWindowsClientConf = `log_location            STDOUT
