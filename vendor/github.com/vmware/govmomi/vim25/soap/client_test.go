@@ -14,30 +14,30 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package object
+package soap
 
-import (
-	"github.com/vmware/govmomi/vim25"
-	"github.com/vmware/govmomi/vim25/methods"
-	"github.com/vmware/govmomi/vim25/types"
-	"golang.org/x/net/context"
-)
+import "testing"
 
-type ListView struct {
-	Common
-}
-
-func NewListView(c *vim25.Client, ref types.ManagedObjectReference) *ListView {
-	return &ListView{
-		Common: NewCommon(c, ref),
-	}
-}
-
-func (v ListView) Destroy(ctx context.Context) error {
-	req := types.DestroyView{
-		This: v.Reference(),
+func TestSplitHostPort(t *testing.T) {
+	tests := []struct {
+		url  string
+		host string
+		port string
+	}{
+		{"127.0.0.1", "127.0.0.1", ""},
+		{"*:1234", "*", "1234"},
+		{"127.0.0.1:80", "127.0.0.1", "80"},
+		{"[::1]:6767", "[::1]", "6767"},
+		{"[::1]", "[::1]", ""},
 	}
 
-	_, err := methods.DestroyView(ctx, v.c, &req)
-	return err
+	for _, test := range tests {
+		host, port := splitHostPort(test.url)
+		if host != test.host {
+			t.Errorf("(%s) %s != %s", test.url, host, test.host)
+		}
+		if port != test.port {
+			t.Errorf("(%s) %s != %s", test.url, port, test.port)
+		}
+	}
 }
